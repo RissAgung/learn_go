@@ -3,7 +3,7 @@ package db
 import (
 	"errors"
 	"fmt"
-	"os/user"
+	"jwt-auth/migrations"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
@@ -32,8 +32,8 @@ func GetConnection() {
 	if err != nil {
 		panic(err)
 	}
-
-	db.AutoMigrate(&user.User{})
+	db.AutoMigrate(&migrations.User{})
+	db.AutoMigrate(&migrations.BlackListToken{})
 	DB = db
 }
 

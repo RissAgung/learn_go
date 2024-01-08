@@ -11,19 +11,18 @@ import (
 
 func main() {
 	router := gin.Default()
-	api := router.Group("/api")
-	guest := api.Use(jwt.AuthMiddleware())
+	guest_access := router.Group("/api")
+	auth_access := router.Group("/api").Use(jwt.AuthMiddleware())
 
 	db.GetConnection()
 
-	api.GET("/", func(c *gin.Context) {
+	guest_access.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "connected api"})
 	})
+	guest_access.POST("/login", auth.Login)
 
-	guest.POST("/register", auth.Register)
-	api.POST("/login", auth.Login)
-
-	// api.POST("/verifyToken", jwt.Verify)
-
+	auth_access.POST("/register", auth.Register)
+	auth_access.POST("/extractToken", auth.ExtractData)
+	auth_access.POST("/logout", auth.Logout)
 	router.Run()
 }

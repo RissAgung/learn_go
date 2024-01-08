@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
@@ -16,21 +15,17 @@ import (
 
 type (
 	User struct {
-		Id_User   string    `gorm:"primary_key;type:varchar(11);not null" json:"id_user"`
-		Username  string    `gorm:"type:varchar(20);not null" json:"username"`
-		Password  string    `gorm:"type:varchar(70);not null" json:"password"`
-		CreatedAt time.Time `gorm:"autoCreateTime;not null" json:"created_at"`
-		UpdatedAt time.Time `gorm:"autoUpdateTime;not null" json:"updated_at"`
+		Id_User   string    `json:"id_user"`
+		Username  string    `json:"username"`
+		Password  string    `json:"password"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
 	}
 
 	JwtTokenPayload struct {
+		Id       string `json:"id"`
 		Username string `json:"username"`
 		jwt.RegisteredClaims
-	}
-
-	Response struct {
-		Message string      `json:"message"`
-		Data    interface{} `json:"data,omitempty"` // omitempty akan membuat key data tidak di tampilkan apabila nilainya kosong
 	}
 )
 
@@ -81,40 +76,34 @@ func (user *User) GenerateId() error {
 	return nil
 }
 
-func (user *User) GetToken() (Response, error) {
-	var response Response
+func (user *User) GetToken() (string, error) {
 	var token JwtTokenPayload
 
 	config, err := godotenv.Read()
 	if err != nil {
-		return response, err
+		return "", err
 	}
 
 	lifeTimeToken, err := strconv.Atoi(config["LIFE_TIME_TOKEN"])
 	if err != nil {
-		return response, err
+		return "", err
 	}
 
 	secretKey, errGetKey := db.GetJwtKey()
 	if errGetKey != nil {
-		return response, errGetKey
+		return "", errGetKey
 	}
 
 	token.RegisteredClaims = jwt.RegisteredClaims{
 		Issuer:    "my-app",
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * time.Duration(lifeTimeToken))),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * time.Duration(lifeTimeToken))),
 	}
 
 	token.Username = user.Username
+	token.Id = user.Id_User
 	_token := jwt.NewWithClaims(jwt.SigningMethodHS256, token)
 	tokenResult, _ := _token.SignedString([]byte(secretKey))
 
-	response.Message = "Success Login"
-	response.Data = gin.H{
-		"username":     user.Username,
-		"access_token": tokenResult,
-	}
-
-	return response, nil
+	return tokenResult, nil
 }
